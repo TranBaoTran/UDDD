@@ -92,6 +92,10 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == 10) {
             notes = db.getAllNotes();
+            noteArrayAdapter.clear();
+            for(note note: notes){
+                noteArrayAdapter.insert(note, noteArrayAdapter.getCount());
+            }
             noteArrayAdapter.notifyDataSetChanged();
         }
 
