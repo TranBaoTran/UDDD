@@ -1,5 +1,6 @@
 package com.example.baitapquatrinh;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
@@ -23,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -122,9 +124,9 @@ public class submain extends AppCompatActivity {
         }else {
             db.insertNote(n);
         }
+
         Intent resultIntent = new Intent();
-        resultIntent.putExtra("chucnang", "them");
-        setResult(MainActivity.RESULT_OK, resultIntent);
+        setResult(10,resultIntent);
         finish();
     }
     private void save(){
@@ -188,18 +190,30 @@ public class submain extends AppCompatActivity {
         }
     }
 
+
     private void handleImageSelection(Intent data) {
         ClipData clipData = data.getClipData();
         if (clipData != null) {
             for (int i = 0; i < clipData.getItemCount(); i++) {
                 Uri selectedImageUri = clipData.getItemAt(i).getUri();
+                grantImagePermission(selectedImageUri, data);
                 imgList.add(selectedImageUri);
             }
         } else {
             Uri selectedImageUri = data.getData();
+            grantImagePermission(selectedImageUri, data);
             imgList.add(selectedImageUri);
         }
         displaySelectedImages();
+    }
+    @SuppressLint("WrongConstant")
+    private void grantImagePermission(Uri uri, Intent intent){
+        this.grantUriPermission(this.getPackageName(), uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        final int takeFlags = intent.getFlags()
+                & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+// Check for the freshest data.
+        getContentResolver().takePersistableUriPermission(uri, takeFlags);
     }
 
     private void displaySelectedImages() {
