@@ -113,10 +113,10 @@ public class Database extends SQLiteOpenHelper {
             values.put(KEY_CONTENT, n.getContent());
 
             // Updating the row in the notes table
-            int rowsAffected = db.update(TABLE_NOTES, values, KEY_ID + " = ?", new String[]{String.valueOf(n.getId())});
+            int rowsAffected = db.update(TABLE_NOTES, values, KEY_ID + " = ?", new String[] {Long.toString(n.getId())});
 
             // Delete existing image URIs for the note
-            db.delete(TABLE_NOTE_IMAGES, KEY_NOTE_ID + " = ?", new String[]{String.valueOf(n.getId())});
+            db.delete(TABLE_NOTE_IMAGES, KEY_NOTE_ID + " = ?", new String[] {Long.toString(n.getId())});
 
             // Insert the new image URIs
             for (String imageUri : n.getUris()) {
@@ -141,7 +141,7 @@ public class Database extends SQLiteOpenHelper {
             db.beginTransaction();
 
             // Delete associated images first
-            db.delete(TABLE_NOTE_IMAGES, KEY_NOTE_ID + " = ?", new String[]{String.valueOf(noteId)});
+            db.delete(TABLE_NOTE_IMAGES, KEY_NOTE_ID + " = ?", new String[] {Long.toString(noteId)});
 
             // Delete the note
             db.delete(TABLE_NOTES, KEY_ID + " = ?", new String[]{String.valueOf(noteId)});

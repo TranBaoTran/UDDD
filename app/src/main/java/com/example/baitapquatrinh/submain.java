@@ -1,9 +1,11 @@
 package com.example.baitapquatrinh;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.ClipData;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -45,6 +47,7 @@ public class submain extends AppCompatActivity {
     private ListView listIMG;
     private ImgArrayAdapter imgArrayAdapter;
     private boolean created=false;
+    private long idNote=0;
     Database db;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,18 +75,21 @@ public class submain extends AppCompatActivity {
     }
 
     private void setListeners() {
-        saveButton.setOnClickListener(view -> saveNote());
+        saveButton.setOnClickListener(view -> save());
 
-        backButton.setOnClickListener(view -> finish());
+        backButton.setOnClickListener(view -> save());
 
         remindButton.setOnClickListener(view -> showDateTimePickerDialog());
 
         imgButton.setOnClickListener(view -> showImagePickerDialog());
+
+        trashButton.setOnClickListener(view -> showDeleteConfirmationDialog());
     }
     private void display(){
         Intent intent= getIntent();
-        long id = intent.getLongExtra("id",0);
-        if(id==0){
+        idNote = intent.getLongExtra("id",0);
+        Toast.makeText(this, String.valueOf(idNote), Toast.LENGTH_SHORT).show();
+        if(idNote==0){
             trashButton.setVisibility(View.INVISIBLE);
             created=false;
         }else{
@@ -111,13 +117,22 @@ public class submain extends AppCompatActivity {
         }
         note n=new note(titleText.getText().toString(),contentText.getText().toString(),formattedDateTime,val);
         if (created){
-            Toast.makeText(this, String.valueOf(db.updateNote(n)), Toast.LENGTH_SHORT).show();
+            n.setId(idNote);
+            db.updateNote(n);
         }else {
             db.insertNote(n);
         }
         Intent resultIntent = new Intent();
-        setResult(Activity.RESULT_OK, resultIntent);
+        resultIntent.putExtra("chucnang", "them");
+        setResult(MainActivity.RESULT_OK, resultIntent);
         finish();
+    }
+    private void save(){
+        if(titleText.getText().toString().isEmpty() && contentText.getText().toString().isEmpty() && imgList.size()==0){
+            finish();
+        }else{
+            saveNote();
+        }
     }
     private void showDateTimePickerDialog() {
         // Get the current date and time
@@ -189,6 +204,28 @@ public class submain extends AppCompatActivity {
 
     private void displaySelectedImages() {
         imgArrayAdapter.notifyDataSetChanged();
+    }
+
+    private void showDeleteConfirmationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete Confirmation")
+                .setMessage("Are you sure you want to delete?")
+                .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        db.deleteNote(idNote);
+                        finish();
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked Cancel button
+                        dialog.dismiss(); // Dismiss the dialog without taking any action
+                    }
+                });
+
+        // Create and show the AlertDialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 }
 
