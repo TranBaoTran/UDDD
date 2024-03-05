@@ -2,15 +2,23 @@ package com.example.baitapquatrinh;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
@@ -22,6 +30,8 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import java.net.URI;
@@ -37,6 +47,7 @@ import java.util.Locale;
 // Import statements...
 
 public class submain extends AppCompatActivity {
+    private static final String CHANNEL_ID = "notification";
     private static final int PICK_IMAGES_REQUEST = 1;
     private Button backButton;
     private Button remindButton;
@@ -79,9 +90,25 @@ public class submain extends AppCompatActivity {
     private void setListeners() {
         saveButton.setOnClickListener(view -> save());
 
-        backButton.setOnClickListener(view -> save());
+        backButton.setOnClickListener(view -> finish());
 
-        remindButton.setOnClickListener(view -> showDateTimePickerDialog());
+        remindButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (ContextCompat.checkSelfPermission(submain.this, android.Manifest.permission.POST_NOTIFICATIONS)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    // Quyền đã được cấp, có thể tạo thông báo
+                    createNotificationChannel();
+
+                } else {
+                    // Quyền chưa được cấp, yêu cầu người dùng cấp quyền
+                    ActivityCompat.requestPermissions(submain.this,
+                            new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                            1);
+                }
+                showDateTimePickerDialog();
+            }
+        });
 
         imgButton.setOnClickListener(view -> showImagePickerDialog());
 
@@ -90,7 +117,6 @@ public class submain extends AppCompatActivity {
     private void display(){
         Intent intent= getIntent();
         idNote = intent.getLongExtra("id",0);
-        Toast.makeText(this, String.valueOf(idNote), Toast.LENGTH_SHORT).show();
         if(idNote==0){
             trashButton.setVisibility(View.INVISIBLE);
             created=false;
@@ -161,6 +187,8 @@ public class submain extends AppCompatActivity {
                                 // Set the selected time
                                 calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 calendar.set(Calendar.MINUTE, minute);
+                                setNotificationTime(calendar);
+                                Toast.makeText(submain.this,"Set notification success", Toast.LENGTH_SHORT).show();
                             }
                         },
                         hour,minute, true);
@@ -227,6 +255,8 @@ public class submain extends AppCompatActivity {
                 .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         db.deleteNote(idNote);
+                        Intent resultIntent = new Intent();
+                        setResult(10,resultIntent);
                         finish();
                     }
                 })
@@ -240,6 +270,38 @@ public class submain extends AppCompatActivity {
         // Create and show the AlertDialog
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    private void createNotification() {
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.timicon)
+                .setContentTitle(titleText.getText().toString())
+                .setContentText(contentText.getText().toString())
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        notificationManager.notify(1, mBuilder.build());
+    }
+    private void setNotificationTime(Calendar notificationTime) {
+        Calendar now = Calendar.getInstance();
+        long delayInMillis = notificationTime.getTimeInMillis() - now.getTimeInMillis();
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                createNotification();
+            }
+        }, delayInMillis);
+    }
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Channel Name", NotificationManager.IMPORTANCE_HIGH);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 }
 
